@@ -60,6 +60,11 @@ DB_ENCRYPTION_KEY = "/etc/pulp/certs/database_fields.symmetric.key"
 
 # API Root
 API_ROOT = "/pulp/"
+# regex to alter path in content-disposition header & str to replace them with
+# wrapped in parens to prevent dynaconf from thinking this is a list :/
+#S3_REPO_MANGLE_REGEX = r'([^-a-zA-Z0-9._])'
+S3_REPO_MANGLE_REGEX = r'([/=;])'
+S3_REPO_MANGLE_TO = '__'
 
 # Application definition
 

@@ -543,7 +543,7 @@ class Handler:
                 pass
             else:
                 if ca.artifact:
-                    return await self._serve_content_artifact(ca, headers, request)
+                    return await self._serve_content_artifact(ca, headers, request, path)
                 else:
                     return await self._stream_content_artifact(
                         request, StreamResponse(headers=headers), ca
@@ -571,7 +571,7 @@ class Handler:
                     pass
                 else:
                     if ca.artifact:
-                        return await self._serve_content_artifact(ca, headers, request)
+                        return await self._serve_content_artifact(ca, headers, request, path)
                     else:
                         return await self._stream_content_artifact(
                             request, StreamResponse(headers=headers), ca
@@ -617,7 +617,7 @@ class Handler:
                 pass
             else:
                 if ca.artifact:
-                    return await self._serve_content_artifact(ca, headers, request)
+                    return await self._serve_content_artifact(ca, headers, request, path)
                 else:
                     return await self._stream_content_artifact(
                         request, StreamResponse(headers=headers), ca
@@ -644,7 +644,7 @@ class Handler:
                 ra = await sync_to_async(get_remote_artifact_blocking)()
                 ca = ra.content_artifact
                 if ca.artifact:
-                    return await self._serve_content_artifact(ca, headers, request)
+                    return await self._serve_content_artifact(ca, headers, request, path)
                 else:
                     return await self._stream_content_artifact(
                         request, StreamResponse(headers=headers), ca
@@ -788,7 +788,7 @@ class Handler:
                 content_artifact.save()
         return artifact
 
-    async def _serve_content_artifact(self, content_artifact, headers, request):
+    async def _serve_content_artifact(self, content_artifact, headers, request, path=''):
         """
         Handle response for a Content Artifact with the file present.
 
@@ -800,6 +800,7 @@ class Handler:
                 respond with.
             headers (dict): A dictionary of response headers.
             request(:class:`~aiohttp.web.Request`): The request to prepare a response for.
+            path (string): The path requested
 
         Raises:
             :class:`aiohttp.web_exceptions.HTTPFound`: When we need to redirect to the file
@@ -821,6 +822,11 @@ class Handler:
         elif not settings.REDIRECT_TO_OBJECT_STORAGE:
             return ArtifactResponse(content_artifact.artifact, headers=headers)
         elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+            artifact_file = content_artifact.artifact.file
+            mangled_repo_path = re.sub(
+                settings.S3_REPO_MANGLE_REGEX, settings.S3_REPO_MANGLE_TO, path)
+            artifact_name = os.path.basename(content_artifact.relative_path)
+            content_disposition = f'attachment;x-pulp-artifact-path={mangled_repo_path};filename={artifact_name}'
             parameters = {"ResponseContentDisposition": content_disposition}
             if headers.get("Content-Type"):
                 parameters["ResponseContentType"] = headers.get("Content-Type")
